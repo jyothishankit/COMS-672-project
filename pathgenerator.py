@@ -4,9 +4,6 @@ import geohelper as gh
 from networkx.exception import NetworkXNoPath
 
 class PathGenerator(object):
-    """
-    Path_Generator generates a simulated real trajectory
-    """
     def __init__(self, G, cycle=60):
         self.cycle = cycle
         self.G = G
@@ -21,18 +18,6 @@ class PathGenerator(object):
             self.node_lons[i] = data['lon']
             self.node_ids[i] = node_id
 
-    def get_node_locs(self):
-        return zip(self.node_lats, self.node_lons)
-
-    def shortest_path(self, source, target, weight='length', distance=True):
-        ## A* search for shortest path
-        path = nx.astar_path(self.G, source, target, self.__grand_circle, weight=weight)
-        if distance:
-            distance = sum(self.G[u][v].get(weight, 1) for u, v in zip(path[:-1], path[1:]))
-            return path, distance
-        else:
-            return path
-
     def map_matching_shortest_path(self, origin, destination, weight='length', noise=1e-2, maxtry=20):
         ptry = 0
         while 1:
@@ -43,7 +28,6 @@ class PathGenerator(object):
                     su, sv, sd = self.map_match((lat, lon))
                     break
                 except ValueError:
-                    #print ("MM ERROR: ", origin)
                     if mmtry > maxtry:
                         raise
                     mmtry += 1
@@ -57,7 +41,6 @@ class PathGenerator(object):
                     tu, tv, td = self.map_match((lat, lon))
                     break
                 except ValueError:
-                    #print ("MM ERROR: ", destination)
                     if mmtry > maxtry:
                         raise
                     mmtry += 1
@@ -68,100 +51,29 @@ class PathGenerator(object):
                 path, distance = self.shortest_path(su, tu, weight=weight)
                 break
             except NetworkXNoPath:
-                #print ("NetworkXNoPath: %d, %d" % (su, tu))
                 if ptry > maxtry:
                     raise
                 ptry += 1
                 if len(nx.single_source_shortest_path_length(self.G, su)) < 1000:
                     self.G.remove_node(su)
-                    #print ("REMOVE NODE: %d" % su)
 
                 if len(nx.single_source_shortest_path_length(self.G, tu)) < 1000:
                     self.G.remove_node(tu)
-                    #print ("REMOVE NODE: %d" % tu)
 
         source = su, sv, sd
         target = tu, tv, td
         return path, distance, source, target
 
+    def get_node_locs(self):
+        return zip(self.node_lats, self.node_lons)
 
-    def generate_path(self, origin, destination, step, path, source, target):
-
-        """determine the shortest path from source to target and return locations on the path
-        """
-        if len(path) < 3:
-            return [destination]
-        su, sv, sd = source
-        tu, tv, td = target
-        trajectory = []
-        ds = step
-
-        # origin~
-        if path[1] == su or path[1] == sv:
-            start_node = path.pop(0)
-        elif path[0] == su:
-            start_node = sv
+    def shortest_path(self, source, target, weight='length', distance=True):
+        path = nx.astar_path(self.G, source, target, self.__grand_circle, weight=weight)
+        if distance:
+            distance = sum(self.G[u][v].get(weight, 1) for u, v in zip(path[:-1], path[1:]))
+            return path, distance
         else:
-            start_node = sv
-        end_node = path.pop(0)
-        lats, lons, bearings, lengths = self.get_segments_in_order(start_node, end_node)
-
-        if start_node < end_node:
-            d = sd
-        else:
-            d = sum(lengths) - sd
-        for lat, lon, b, l in zip(lats[:-1], lons[:-1], bearings, lengths):
-            if d > l:
-                d -= l
-                continue
-            if d > 0:
-                lat, lon = gh.end_lat_lon(lat, lon, d, b)
-                trajectory.append((lat, lon))
-                l -= d
-                d = 0
-            locs, ds = self.create_trajectory(lat, lon, b, l, step, ds)
-            trajectory += locs
-
-        start_node = end_node
-
-        # intermediate
-        for end_node in path[:-1]:
-            lats, lons, bearings, lengths = self.get_segments_in_order(start_node, end_node)
-            for lat, lon, b, l in zip(lats[:-1], lons[:-1], bearings, lengths):
-                locs, ds = self.create_trajectory(lat, lon, b, l, step, ds)
-                trajectory += locs
-            start_node = end_node
-
-        # ~destination
-        end_node = path[-1]
-        if not (start_node == tu or start_node == tv):
-            lats, lons, bearings, lengths = self.get_segments_in_order(start_node, end_node)
-            for lat, lon, b, l in zip(lats[:-1], lons[:-1], bearings, lengths):
-                locs, ds = self.create_trajectory(lat, lon, b, l, step, ds)
-                trajectory += locs
-            start_node = end_node
-            if start_node == tu:
-                end_node = tv
-            else:
-                end_node = tu
-
-        lats, lons, bearings, lengths = self.get_segments_in_order(start_node, end_node)
-        if start_node < end_node:
-            d = td
-        else:
-            d = sum(lengths) - td
-
-        for lat, lon, b, l in zip(lats[:-1], lons[:-1], bearings, lengths):
-            if d < l:
-                locs, ds = self.create_trajectory(lat, lon, b, d, step, ds)
-                trajectory += locs
-                trajectory.append(gh.end_lat_lon(lat, lon, d, b))
-                break
-            locs, ds = self.create_trajectory(lat, lon, b, l, step, ds)
-            trajectory += locs
-            d -= l
-
-        return trajectory
+            return path
 
     def create_trajectory(self, lat, lon, bearing, distance, step, init_step):
         lats = []
@@ -195,19 +107,12 @@ class PathGenerator(object):
         return lats, lons, bearings, lengths
 
     def map_match(self, loc, geo_range=0.0018):
-        """Search the most probable path on which the GPS signals are observed in a given graph
-
-        Parameters
-        ----------
-        geo_range:          float;  buffer value of boundary box in degree
-
-        """
         lat, lon = loc
         G = self.__get_subgraph(lat, lon, geo_range)
         roads = G.edges()
         N = len(roads)
         if N == 0:
-            raise ValueError("""No nodes within search area around input location.""")
+            raise ValueError("""No nodes present within search.""")
 
         road_lengths = np.zeros(N, 'float16')
         road_ids = np.zeros(N)
@@ -231,7 +136,72 @@ class PathGenerator(object):
 
         return u, v, d
 
+    def generate_path(self, origin, destination, step, path, source, target):
+        if len(path) < 3:
+            return [destination]
+        su, sv, sd = source
+        tu, tv, td = target
+        trajectory = []
+        ds = step
+        if path[1] == su or path[1] == sv:
+            start_node = path.pop(0)
+        elif path[0] == su:
+            start_node = sv
+        else:
+            start_node = sv
+        end_node = path.pop(0)
+        lats, lons, bearings, lengths = self.get_segments_in_order(start_node, end_node)
 
+        if start_node < end_node:
+            d = sd
+        else:
+            d = sum(lengths) - sd
+        for lat, lon, b, l in zip(lats[:-1], lons[:-1], bearings, lengths):
+            if d > l:
+                d -= l
+                continue
+            if d > 0:
+                lat, lon = gh.end_lat_lon(lat, lon, d, b)
+                trajectory.append((lat, lon))
+                l -= d
+                d = 0
+            locs, ds = self.create_trajectory(lat, lon, b, l, step, ds)
+            trajectory += locs
+
+        start_node = end_node
+        for end_node in path[:-1]:
+            lats, lons, bearings, lengths = self.get_segments_in_order(start_node, end_node)
+            for lat, lon, b, l in zip(lats[:-1], lons[:-1], bearings, lengths):
+                locs, ds = self.create_trajectory(lat, lon, b, l, step, ds)
+                trajectory += locs
+            start_node = end_node
+        end_node = path[-1]
+        if not (start_node == tu or start_node == tv):
+            lats, lons, bearings, lengths = self.get_segments_in_order(start_node, end_node)
+            for lat, lon, b, l in zip(lats[:-1], lons[:-1], bearings, lengths):
+                locs, ds = self.create_trajectory(lat, lon, b, l, step, ds)
+                trajectory += locs
+            start_node = end_node
+            if start_node == tu:
+                end_node = tv
+            else:
+                end_node = tu
+        lats, lons, bearings, lengths = self.get_segments_in_order(start_node, end_node)
+        if start_node < end_node:
+            d = td
+        else:
+            d = sum(lengths) - td
+        for lat, lon, b, l in zip(lats[:-1], lons[:-1], bearings, lengths):
+            if d < l:
+                locs, ds = self.create_trajectory(lat, lon, b, d, step, ds)
+                trajectory += locs
+                trajectory.append(gh.end_lat_lon(lat, lon, d, b))
+                break
+            locs, ds = self.create_trajectory(lat, lon, b, l, step, ds)
+            trajectory += locs
+            d -= l
+        return trajectory
+    
     def mm_convert(self, loc, georange=0.0018):
         u, v, d = self.map_match(loc, georange)
         lats, lons, bearings, lengths = self.get_segments_in_order(u, v)
@@ -248,25 +218,10 @@ class PathGenerator(object):
 
 
     def __get_nearest_segment(self, lat, lon, data):
-        """Compute geometric properties between candidate roads and observation points
-        Parameters
-        ----------
-        lat:        float;
-        lon:        float;
-        data:       dictionary; road data
-
-        Returns
-        -------
-        nearest_seg:    index of road segments closest to observation
-        road_distnace:  distance between observation and the closest road
-        node_distance:  distance from the node with higher ID to matched point
-        """
-
         road_lats = np.array(data['lat'])
         road_lons = np.array(data['lon'])
         bearings = np.array(data['bearing'])
         seg_lengths = np.array(data['seg_length']+[data['length']])
-
         h = gh.distance_in_meters(road_lats, road_lons, lat, lon)
         h1 = h[:-1]
         h2 = h[1:]
@@ -291,18 +246,8 @@ class PathGenerator(object):
         return gh.distance_in_meters(source['lat'], source['lon'], target['lat'], target['lon'])
 
     def __get_subgraph(self, lat, lon, geo_range):
-        """ Draw a square bounding box containing all of the observation points
-            Extract nodes within this bounding box and return a subgraph containing the nodes
-
-        Parameters
-        ----------
-        G:                  networkx Graph object; graph representation of the road network
-        geo_range:          float;  buffer value of boundary box
-
-        """
         lat_min, lat_max = lat - geo_range, lat + geo_range
         lon_min, lon_max = lon - geo_range, lon + geo_range
-        # sub_id = gh.nodes_within_square(self.G, [lat_max, lon_max], [lat_min, lon_min])
         lats = self.node_lats
         lons = self.node_lons
         sub_ids = self.node_ids[(lats < lat_max) & (lats > lat_min) & (lons < lon_max) & (lons > lon_min)]
@@ -345,23 +290,3 @@ if __name__ == '__main__':
     with open('data/trajectories.json', 'wb') as f:
         json.dump(trajectories, f)
     print ("Complete!")
-
-
-# class FastPathGenerator(object):
-#     def generate_path(self, origin, destination, timestep):
-#         lat, lon = origin
-#         tlat, tlon = destination
-#         distance = gh.distance_in_meters(lat, lon, tlat, tlon)
-#         bearing = gh.bearing_in_radians(lat, lon, tlat, tlon)
-#         lats = [lat]
-#         lons = [lon]
-#         ds = distance / timestep
-#         while distance > ds:
-#             lat, lon = gh.end_lat_lon(lat, lon, ds, bearing)
-#             lats.append(lat)
-#             lons.append(lon)
-#             distance -= ds
-#             ds = step
-#
-#         ds -= distance
-#         return zip(lats, lons), ds

@@ -129,8 +129,6 @@ class Agent(object):
         self.sess = tf.compat.v1.InteractiveSession()
 
         if self.training:
-            #for var in q_network_weights:
-            #    tf.histogram_summary(var.name, var)
 
             # Create target network
             self.st, self.xt, self.target_q_values, target_network = build_q_network()
