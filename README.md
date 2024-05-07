@@ -2,8 +2,7 @@ Steps to run code on Google Colab Pro+:<br><br>
 1. Verify the following:<br>
 (i)NVIDIA CUDA drivers must be present:<br>
 !nvcc --version<br>
-Output to contain CUDA compiler drive<br>
-Sample output:<br>
+Sample output(Output to contain CUDA compiler drive):<br>
 nvcc: NVIDIA (R) Cuda compiler driver<br>
 Copyright (c) 2005-2023 NVIDIA Corporation<br>
 Built on Tue_Aug_15_22:02:13_PDT_2023<br>
@@ -51,4 +50,4 @@ python3.7 -m venv . <br>
 Check if python and pip are inside the env using "which pip" and "which python"<br>
 
 7. Run "pip install -r requirements.txt" <br>
-8. Run python -W ignore train.py<br> to begin training on 12 million rides and evaluation on the next 1 month of dataset.<br>
+8. Run "python -W ignore train.py" to begin training on 12 million rides and evaluation on the next 1 month of dataset.<br>
