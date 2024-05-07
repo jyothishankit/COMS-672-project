@@ -222,13 +222,7 @@ class PathGenerator(object):
                 (_, road_distance[i], node_distance[i]) = self.__get_nearest_segment(lat, lon, data)
 
         nearest = road_distance.argmin()
-        #print (type(nearest),type(roads))
         test_var = list(roads)
-        #print (roads)
-        #print (road_distance,road_distance.shape)
-        #print (N,type(roads))
-        #print (road_distance.argmin())
-        
         u = int(test_var[nearest][0])
         v = int(test_var[nearest][1])
         d = node_distance[nearest]

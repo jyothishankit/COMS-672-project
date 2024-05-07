@@ -1,3 +1,5 @@
+Effective Multi-Hop Taxi Ride Sharing Strategy
+
 Steps to run code on Google Colab Pro+:<br><br>
 1. Verify the following:<br>
 (i)NVIDIA CUDA drivers must be present:<br>
@@ -50,7 +52,7 @@ python3.7 -m venv . <br>
 Check if python and pip are inside the env using "which pip" and "which python"<br>
 
 7. Run "pip install -r requirements.txt" <br>
-8. Run "python -W ignore train.py" to begin training on 12 million rides and evaluation on the next 1 month of dataset.<br>
+8. Run "python -W ignore train_and_evaluate.py" to begin training on 12 million rides and evaluation on the next 1 month of dataset.<br>
 9. Epochs, loss, Qmax trends are stored in output file "epoch_qmax_loss.txt"<br>
 10. Intermediate DQN score outputs are generated for each episode(20 in total)<br>
 These files can be used for interpretation.<br><br>

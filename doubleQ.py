@@ -237,13 +237,9 @@ class Agent(object):
                     self.sess.run(self.update_target_network)
 
                 # Train network
-                #if len(self.replay_memory) == NUM_REPLAY_MEMORY:
                 self.train_network()
-
                 if self.num_iters % SUMMARY_INTERVAL == 0:
                     self.write_summary()
-
-                # Save network
                 if self.num_iters % SAVE_INTERVAL == 0:
                     save_path = self.saver.save(self.sess, SAVE_NETWORK_PATH + '/' + ENV_NAME,
                                                 global_step=(self.num_iters))
@@ -269,7 +265,7 @@ class Agent(object):
 
     def update_time(self):
         self.minofday += self.time_step
-        if self.minofday >= 1440: # 24 hour * 60 minute
+        if self.minofday >= 1440: # Set to next day, 24 hour * 60 minute
             self.minofday -= 1440
             self.dayofweek = (self.dayofweek + 1) % 7
 
