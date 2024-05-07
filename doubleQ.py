@@ -73,7 +73,7 @@ def build_q_network():
     aux_input = Input(shape=(AUX_DEPTH, AUX_LENGTH, AUX_LENGTH), dtype='float32')
     c = OUTPUT_LENGTH / 2
     sliced_input = Lambda(lambda x: x[:, :-1, :, :])(main_input)
-    ave = AveragePooling2D(pool_size=(OUTPUT_LENGTH, OUTPUT_LENGTH), strides=(1, 1),data_format ="channels_first")(sliced_input)
+    ave = MaxPooling2D(pool_size=(OUTPUT_LENGTH, OUTPUT_LENGTH), strides=(1, 1),data_format ="channels_first")(sliced_input)
     e=int(c)
     ave1 = Cropping2D(cropping=((e, e), (e, e)),data_format="channels_first")(ave)  #correct
     ave2 = AveragePooling2D(pool_size=(OUTPUT_LENGTH, OUTPUT_LENGTH), strides=(1, 1),data_format= "channels_first")(ave) #correct

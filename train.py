@@ -1,27 +1,10 @@
 import pandas as pd
 import _pickle as pickle
-
-from simulator_v2 import FleetSimulator
+from constants import *
+from hyperparameters import *
+from simulator import FleetSimulator
 from doubleQ import Agent
 from experiment import run, load_trip_chunks, describe
-
-GRAPH_PATH = 'data/nyc_network_graph.pkl'
-TRIP_PATH = 'data/hoptrips_all_v3.csv'
-ETA_MODEL_PATH = 'data/triptime_predictor.pkl'
-GEOHASH_TABLE_PATH = 'data/zones_hop_v2.csv'
-SCORE_PATH = ''
-INITIAL_MEMORY_PATH = SCORE_PATH + r'data/ex_memory_v52.pkl'
-INITIAL_MEMORY = True
-LOAD_NETWORK = True
-NUM_TRIPS = 12000000
-DURATION = 800
-NUM_FLEETS = 8000
-NO_OP_STEPS = 0
-CYCLE = 1
-ACTION_UPDATE_CYCLE = 15
-DEMAND_FORECAST_INTERVAL = 30
-AVERAGE_CYCLE = 30
-NUM_EPISODES = 20
 
 def main():
     print("Loading models...")

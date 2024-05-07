@@ -4,16 +4,7 @@ from pathgenerator import PathGenerator
 import geohelper as gh
 import geohash2 as Geohash
 import math
-
-TIMESTEP = 60
-GEOHASH_PRECISION = 7
-REJECT_DISTANCE = 7000
-RIDE_REWARD = 0.00001
-TRIP_REWARD = 1.0 
-WAIT_COST = 0.05 #0.05
-HOP_REWARD = 0.035
-MIN_TRIPTIME = 1.0
-ASSIGNMENT_SPEED = 50
+from hyperparameters import *
 
 def index_pull(rows,trips_test_2):
     

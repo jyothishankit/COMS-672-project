@@ -1,0 +1,6 @@
+GRAPH_PATH = 'pickle/nyc_network_graph.pkl'
+TRIP_PATH = 'data/hoptrips_all_v3.csv'
+ETA_MODEL_PATH = 'pickle/triptime_predictor.pkl'
+GEOHASH_TABLE_PATH = 'data/zones_hop_v2.csv'
+SCORE_PATH = ''
+INITIAL_MEMORY_PATH = SCORE_PATH + r'pickle/ex_memory_v52.pkl'
