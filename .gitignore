@@ -1,2 +1,7 @@
 data/
 pickle/
+bin/
+share/
+lib/
+Lib\
+Scripts\
