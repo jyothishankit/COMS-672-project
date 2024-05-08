@@ -200,7 +200,7 @@ def print_summary(total_requests, total_reject, total_idle, total_reward, distan
     effort = float(total_idle) / (total_requests * 0.2 - total_reject)
     avg_time = score.agent_time.mean()
 
-    print("----------------------------------- SUMMARY -----------------------------------")
+    print("=============================== SUMMARY ===============================")
     print("REQUESTS: {0:d} / REJECTS: {1:d} / IDLE: {2:d} / REWARD: {3:.0f}/RATIO_EFF_DIST: {4:.2f}/TRANS: {5:.4f}".format(
         total_requests, total_reject, total_idle, total_reward, distance_ratio, avg_num_transitions))
     print("WAIT TIME: {0:.2f} / REJECT RATE: {1:.3f} / EFFORT: {2:.2f} / TIME: {3:.2f}/TRIP_TIME: {4:.4f}".format(
