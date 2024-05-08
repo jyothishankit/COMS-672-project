@@ -217,7 +217,6 @@ class Agent(object):
                   file.write(output_file_line)
                   self.total_q_max = 0
                   self.total_loss = 0
-
               self.train_network()
 
     def get_actions(self, vehicles, requests):

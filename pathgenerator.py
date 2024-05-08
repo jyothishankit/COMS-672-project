@@ -1,7 +1,8 @@
 import numpy as np
-import networkx as nx
 import geohelper as gh
 from networkx.exception import NetworkXNoPath
+import networkx as nx
+
 
 class PathGenerator(object):
     def __init__(self, G, cycle=60):
@@ -125,7 +126,6 @@ class PathGenerator(object):
                 road_lengths[i] = data['length']
                 road_ids[i] = data['id']
                 (_, road_distance[i], node_distance[i]) = self.__get_nearest_segment(lat, lon, data)
-
         nearest = road_distance.argmin()
         test_var = list(roads)
         u = int(test_var[nearest][0])
@@ -133,7 +133,6 @@ class PathGenerator(object):
         d = node_distance[nearest]
         if u > v:
             u, v = v, u
-
         return u, v, d
 
     def generate_path(self, origin, destination, step, path, source, target):

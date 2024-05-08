@@ -2,48 +2,31 @@ import numpy as np
 import pandas as pd
 from pathgenerator import PathGenerator
 import geohelper as gh
-import geohash2 as Geohash
-import math
 from hyperparameters import *
-
-def index_pull(rows,trips_test_2):
-    
-    val= trips_test_2[(trips_test_2['plat']==rows['plat'].item()) & (trips_test_2['plon']==rows['plon'].item())].index.values       
-    return val 
-
+from vehicle import *
 
 class FleetSimulator(object):
-    """
-    FleetSimulator is an environment in which fleets mobility, dispatch
-    and passenger pickup / dropoff are simulated.
-    """
-
-    def __init__(self, G, eta_model, cycle, max_action_time=15):
+    def __init__(self, G, eta_model, cycle, max_action_time=20):
         self.router = PathGenerator(G)
+        self.max_action_time = max_action_time
         self.eta_model = eta_model
         self.cycle = cycle
-        self.max_action_time = max_action_time
-
 
     def reset(self, num_vehicles, dataset, dayofweek, minofday):
         self.requests = dataset
+        init_locations = self.requests[['plat', 'plon']].values[np.arange(num_vehicles) % len(self.requests)]
+        self.vehicles = [Vehicle(i, init_locations[i]) for i in range(num_vehicles)]
         self.current_time = 0
         self.minofday = minofday
         self.dayofweek = dayofweek
-        init_locations = self.requests[['plat', 'plon']].values[np.arange(num_vehicles) % len(self.requests)]
-        self.vehicles = [Vehicle(i, init_locations[i]) for i in range(num_vehicles)]
 
-    def update_time(self):
-        self.current_time += TIMESTEP
-        self.minofday += int(TIMESTEP / 60.0)
-        if self.minofday >= 1440:
-            self.minofday -= 1440
-            self.dayofweek = (self.dayofweek + 1) % 7
+
+    def get_requests(self, num_steps, offset=0):
+        requests = self.requests[(self.requests.second >= self.current_time + offset * TIMESTEP)
+                                 &(self.requests.second < self.current_time + TIMESTEP * (num_steps + offset))]
+        return requests
 
     def step(self, actions=None):
-        """
-        step forward the environment by TIMESTEP
-        """
         num_steps = int(self.cycle * 60.0 / TIMESTEP)
 
         if actions:
@@ -63,25 +46,21 @@ class FleetSimulator(object):
             reject += len(W) - num_passengers
             request_hop_zero += request_hop_zero_
             self.update_time()
-
         vehicles = self.get_vehicles_dataframe()
         return vehicles, requests, wait, reject, gas, request_hop_zero
-
-    def get_requests(self, num_steps, offset=0):
-        requests = self.requests[(self.requests.second >= self.current_time + offset * TIMESTEP)
-                                 &(self.requests.second < self.current_time + TIMESTEP * (num_steps + offset))]
-        return requests
-
+    
     def get_vehicles_dataframe(self):
         vehicles = [vehicle.get_state() for vehicle in self.vehicles]
         vehicles = pd.DataFrame(vehicles, columns=['id', 'available', 'geohash', 'dest_geohash',
                                                    'eta', 'status', 'reward', 'lat', 'lon', 'idle','eff_dist','act_dist'])
         return vehicles
 
-    def get_vehicles_location(self):
-        vehicles = [vehicle.get_location() for vehicle in self.vehicles]
-        vehicles = pd.DataFrame(vehicles, columns=['id', 'lat', 'lon', 'available'])
-        return vehicles
+    def update_time(self):
+        self.current_time += TIMESTEP
+        self.minofday += int(TIMESTEP / 60.0)
+        if self.minofday >= 1440:
+            self.minofday -= 1440
+            self.dayofweek = (self.dayofweek + 1) % 7
 
     def get_vehicles_score(self):
         vehicles = [vehicle.get_score() for vehicle in self.vehicles]
@@ -93,8 +72,7 @@ class FleetSimulator(object):
         R = resources[resources.available == 1]
         tasks_uniq = tasks.groupby(['plat','plon']).count()
         tasks_uniq = tasks_uniq.reset_index(level=['plat','plon'])
-        tasks_uniq = tasks_uniq[['plat','plon']]
-        
+        tasks_uniq = tasks_uniq[['plat','plon']]  
         tasks_uniq['index']=tasks_uniq.apply(lambda rows:tasks[(tasks['plat']==rows['plat'].item()) & 
                             (tasks['plon']==rows['plon'].item())].index.values  , axis=1)
         
@@ -111,22 +89,16 @@ class FleetSimulator(object):
             else:
                 vids[i] = vid
                 d[:, vid] = float('inf')
-        
         index_values = tasks_uniq.index[:N][vids >= 0]
         assignments = list(zip(tasks_uniq.loc[index_values]['index'], R['id'].iloc[vids[vids >= 0]]))
         return assignments
 
 
     def assign(self, assignments):
-        """
-        assign ride requests to selected vehicles
-        """
         num_vehicles = len(assignments)
         request_hop_zero =0 
         num_passengers = 0
         wait = 0
-        effective_d = 0 
-        actual_d =0
         for r, v in assignments:
             vehicle = self.vehicles[v]
             request = self.requests.loc[r]
@@ -197,108 +169,9 @@ class FleetSimulator(object):
                 eta = min(trip_times[i], self.max_action_time)
                 self.vehicles[vid].route([], eta)
         return
-
-
-class Vehicle(object):
-    """
-            Status      available   location    eta         storage_id
-    WT:     waiting     1           real        0           0
-    MV:     moving      1           real        >0          0
-    SV:     serving     0           future      >0          0
-    ST:     stored      0           real        0           >0
-    CO:     carry-out   0           real        >0          r>0
-    """
-    def __init__(self, vehicle_id, location):
-        self.id = vehicle_id
-        self.status = 'WT'
-        self.location = location
-        self.zone = Geohash.encode(location[0], location[1], precision=GEOHASH_PRECISION)
-        self.available = True
-        self.trajectory = []
-        self.eta = 0
-        self.idle = 0
-        self.total_idle = 0
-        self.total_service = 0
-        self.reward = 0
-        self.effective_d =0
-        self.actual_d = 0
-        
-
-    def update_location(self, location):
-        lat, lon = location
-        self.location = (lat, lon)
-        self.zone = Geohash.encode(lat, lon, precision=GEOHASH_PRECISION)
-
-    def transition(self):
-        cost = 0
-        if self.status != 'SV':
-            self.idle += TIMESTEP/60.0
-
-        if self.eta > 0:
-            time = min(TIMESTEP/60.0, self.eta)
-            self.eta -= time
-            # moving
-            #if self.trajectory:
-            if self.status == 'MV':
-                #self.update_location(self.trajectory.pop(0))
-                cost = time
-                self.reward -= cost
-
-
-        if self.eta <= 0:
-            # serving -> waiting
-            if self.status == 'SV':
-                self.available = True
-                self.status = 'WT'
-            # moving -> waiting
-            elif self.status == 'MV':
-                self.status = 'WT'
-
-        return cost
-
-    def start_service(self, destination, wait_time, trip_time,actual_distance,eff_distance,num_pass):
-        if not self.available:
-            print ("The vehicle #%d is not available for service." % self.id)
-            return False
-        self.available = False
-        self.update_location(destination)
-        self.total_idle += self.idle + wait_time
-        num_hops = eff_distance /actual_distance
-        self.idle = 0
-        self.eta = wait_time + trip_time
-        self.total_service += trip_time
-        self.reward += (math.sqrt(RIDE_REWARD* num_pass) + TRIP_REWARD * trip_time - math.sqrt(WAIT_COST * wait_time) - (HOP_REWARD*num_hops))
-        self.trajectory = []
-        self.status = 'SV'
-        self.effective_d += eff_distance
-        self.actual_d +=actual_distance 
-        return True
-
-    def route(self, path, trip_time):
-        if not self.available:
-            print ("The vehicle #%d is not available for service." % self.id)
-            return False
-        self.eta = trip_time
-        self.trajectory = path
-        self.status = 'MV'
-        return True
-
-
-    def get_state(self):
-        if self.trajectory:
-            lat, lon = self.trajectory[-1]
-            dest_zone = Geohash.encode(lat, lon, precision=GEOHASH_PRECISION)
-        else:
-            dest_zone = self.zone
-        lat, lon = self.location
-        return (self.id, int(self.available), self.zone, dest_zone,
-                self.eta, self.status, self.reward, lat, lon, self.idle,self.effective_d,self.actual_d)
-
-    def get_location(self):
-        lat, lon = self.location
-        return (self.id, lat, lon, int(self.available))
-
-
-    def get_score(self):
-        return (self.id, self.reward, self.total_service, self.total_idle)
+    
+    def get_vehicles_location(self):
+        vehicles = [vehicle.get_location() for vehicle in self.vehicles]
+        vehicles = pd.DataFrame(vehicles, columns=['id', 'lat', 'lon', 'available'])
+        return vehicles
 
