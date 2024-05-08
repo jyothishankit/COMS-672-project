@@ -3,7 +3,7 @@ from hyperparameters import *
 from vehicle import * 
 from utils import *
 
-class FleetSimulator(object):
+class Simulator(object):
     def __init__(self, graph, model_eta, duration_cycle, max_action_time=20):
         self.router = PathGenerator(graph)
         self.max_action_time = max_action_time

@@ -2,7 +2,7 @@ import pandas as pd
 import _pickle as pickle
 from constants import *
 from hyperparameters import *
-from simulator import FleetSimulator
+from simulator import Simulator
 from doubleQ import Agent
 from experiment import run, load_trip_chunks, describe
 from utils import *
@@ -11,9 +11,9 @@ def main():
     print("Loading hop zone graph with demand and ETA models...")
     graph = load_graph()
     eta_model = load_eta_model()
-    number_of_fleets = NUM_FLEETS
+    number_of_fleets = NUMBER_OF_VEHICLES
     geohash_data = pd.read_csv(GEOHASH_TABLE_PATH, index_col='geohash')
-    environment = FleetSimulator(graph, eta_model, CYCLE, ACTION_UPDATE_CYCLE)
+    environment = Simulator(graph, eta_model, CYCLE, ACTION_UPDATE_CYCLE)
     learning_agent = Agent(geohash_data, CYCLE, ACTION_UPDATE_CYCLE, DEMAND_FORECAST_INTERVAL,
                   training=True, load_network=LOAD_NETWORK)
     if INITIAL_MEMORY:

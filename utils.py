@@ -102,11 +102,11 @@ def calculate_wait_time(distance):
     return (distance * 2 / 1.414) / (ASSIGNMENT_SPEED * 1000 / 60)
 
 def calculate_actual_trip_time(sorted_request):
-    sorted_request_copy = sorted_request.copy()
+    request_sorted_copy= sorted_request.copy()
     sorted_request.loc[:, 'index_value'] = range(len(sorted_request))
-    sorted_request_copy.loc[:, 'index_value'] = sorted_request['index_value'].values - 1
-    sorted_request_copy = sorted_request_copy[['dlat','dlon','index_value']]
-    sorted_join_requests = pd.merge(sorted_request, sorted_request_copy, how='left', on='index_value')
+    request_sorted_copy.loc[:, 'index_value'] = sorted_request['index_value'].values - 1
+    request_sorted_copy= request_sorted_copy[['dlat','dlon','index_value']]
+    sorted_join_requests = pd.merge(sorted_request, request_sorted_copy, how='left', on='index_value')
     sorted_join_requests_non_empty = sorted_join_requests.dropna()
     if len(sorted_join_requests_non_empty) > 0:
         sorted_join_requests_non_empty['dist_bw_dest'] = geo_h.distance_in_meters(sorted_join_requests_non_empty.dlat_x,sorted_join_requests_non_empty.dlon_x,
@@ -125,17 +125,17 @@ def prepare_vehicle_and_target_locations(self, actions):
         return vehicle_locations, target_locations
 
 def calculate_distances(self, vehicle_locations, target_locations):
-    distances = []
-    for vloc, tloc in zip(vehicle_locations, target_locations):
+    distance_list = []
+    for vehicle_location, target_location in zip(vehicle_locations, target_locations):
         try:
-            path, distance, _, _ = self.router.map_matching_shortest_path(vloc, tloc)
-            distances.append(distance)
+            path, distance, _, _ = self.router.map_matching_shortest_path(vehicle_location, target_location)
+            distance_list.append(distance)
         except:
-            start_lat, start_lon = vloc
-            dest_lat, dest_lon = tloc
-            d = geo_h.distance_in_meters(start_lat, start_lon, dest_lat, dest_lon)
-            distances.append(d)
-    return distances
+            start_latitude, start_longitude = vehicle_location
+            dest_latitude, dest_longitude = target_location
+            d = geo_h.distance_in_meters(start_latitude, start_longitude, dest_latitude, dest_longitude)
+            distance_list.append(d)
+    return distance_list
 
 def prepare_feature_matrix(self, vehicle_locs, target_locs, dists):
     num_vehicles = len(vehicle_locs)
