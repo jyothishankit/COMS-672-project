@@ -63,11 +63,12 @@ def count_unique_tasks(task_list):
     unique_tasks = unique_tasks[['plat','plon']]
     return unique_tasks
 
-def find_task_indices(tasks, unique_tasks):
-    task_indices = unique_tasks.apply(lambda row: tasks[(tasks['plat']==row['plat']) & 
-                                                        (tasks['plon']==row['plon'])].index.values, 
-                                    axis=1)
+def find_task_indices(task_list, unique_task_list):
+    task_indices = unique_task_list.apply(lambda row: task_list[(task_list['plat']==row['plat']) & 
+                                                                (task_list['plon']==row['plon'])].index.values, 
+                                          axis=1)
     return task_indices
+
 
 def assign_resources_to_tasks(available_resources, unique_tasks, task_indices):
     distances = geo_h.distance_in_meters(available_resources.lat.values,
