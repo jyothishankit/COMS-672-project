@@ -4,19 +4,19 @@ from vehicle import *
 from utils import *
 
 class FleetSimulator(object):
-    def __init__(self, G, eta_model, cycle, max_action_time=20):
-        self.router = PathGenerator(G)
+    def __init__(self, graph, model_eta, duration_cycle, max_action_time=20):
+        self.router = PathGenerator(graph)
         self.max_action_time = max_action_time
-        self.eta_model = eta_model
-        self.cycle = cycle
+        self.eta_model = model_eta
+        self.cycle = duration_cycle
 
-    def reset(self, num_vehicles, dataset, dayofweek, minofday):
-        init_locations = get_initial_locations(dataset, num_vehicles)
-        self.requests = dataset
-        self.vehicles = get_initial_location_vehicles(init_locations, num_vehicles)
+    def reset(self, vehicle_count, data_set, day_of_week, minute_of_day):
+        initial_locations = get_initial_locations(data_set, vehicle_count)
+        self.requests = data_set
+        self.vehicles = get_initial_location_vehicles(initial_locations, vehicle_count)
         self.current_time = 0
-        self.minofday = minofday
-        self.dayofweek = dayofweek
+        self.minofday = minute_of_day
+        self.dayofweek = day_of_week
 
 
     def get_requests(self, num_steps, offset=0):
