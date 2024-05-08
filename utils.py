@@ -100,21 +100,21 @@ def calculate_distance(loc1, loc2):
 def calculate_wait_time(distance):
     return (distance * 2 / 1.414) / (ASSIGNMENT_SPEED * 1000 / 60)
 
-def calculate_actual_trip_time(request_sorted):
-    request_copy = request_sorted.copy()
-    request_sorted.loc[:, 'index_val'] = range(len(request_sorted))
-    request_copy.loc[:, 'index_val'] = request_sorted['index_val'].values - 1
-    request_copy = request_copy[['dlat','dlon','index_val']]
-    request_join = pd.merge(request_sorted, request_copy, how='left', on='index_val')
-    request_join_no_na = request_join.dropna()
-    if len(request_join_no_na) > 0:
-        request_join_no_na['dist_bw_dest'] = gh.distance_in_meters(request_join_no_na.dlat_x,request_join_no_na.dlon_x,
-                                                                request_join_no_na.dlat_y,request_join_no_na.dlon_y)
-        actual_distance = request_sorted.iloc[0].trip_distance + (sum(request_join_no_na.dist_bw_dest)) / 1000
+def calculate_actual_trip_time(sorted_request):
+    sorted_request_copy = sorted_request.copy()
+    sorted_request.loc[:, 'index_value'] = range(len(sorted_request))
+    sorted_request_copy.loc[:, 'index_value'] = sorted_request['index_value'].values - 1
+    sorted_request_copy = sorted_request_copy[['dlat','dlon','index_value']]
+    sorted_request_join = pd.merge(sorted_request, sorted_request_copy, how='left', on='index_value')
+    sorted_request_join_no_na = sorted_request_join.dropna()
+    if len(sorted_request_join_no_na) > 0:
+        sorted_request_join_no_na['dist_bw_dest'] = gh.distance_in_meters(sorted_request_join_no_na.dlat_x,sorted_request_join_no_na.dlon_x,
+                                                                sorted_request_join_no_na.dlat_y,sorted_request_join_no_na.dlon_y)
+        actual_distance = sorted_request.iloc[0].trip_distance + (sum(sorted_request_join_no_na.distance_between_destinations)) / 1000
         trip_time = (actual_distance / ASSIGNMENT_SPEED) * 60
     else:
-        actual_distance = request_sorted.iloc[0].trip_distance
-        trip_time = request_sorted.iloc[0].trip_time
+        actual_distance = sorted_request.iloc[0].trip_distance
+        trip_time = sorted_request.iloc[0].trip_time
     return actual_distance, trip_time
 
 
@@ -136,21 +136,22 @@ def calculate_distances(self, vehicle_locations, target_locations):
             distances.append(d)
     return distances
 
-def prepare_feature_matrix(self, vehicle_locations, target_locations, distances):
-    N = len(vehicle_locations)
-    X = np.zeros((N, 7))
-    X[:, 0] = self.dayofweek
-    X[:, 1] = self.minofday / 60.0
-    X[:, 2:4] = vehicle_locations
-    X[:, 4:6] = target_locations
-    X[:, 6] = distances
-    return X
+def prepare_feature_matrix(self, vehicle_locs, target_locs, dists):
+    num_vehicles = len(vehicle_locs)
+    feature_matrix = np.zeros((num_vehicles, 7))
+    feature_matrix[:, 0] = self.dayofweek
+    feature_matrix[:, 1] = self.minofday / 60.0
+    feature_matrix[:, 2:4] = vehicle_locs
+    feature_matrix[:, 4:6] = target_locs
+    feature_matrix[:, 6] = dists
+    return feature_matrix
 
-def execute_actions(self, actions, trip_times):
-    for i, (vid, _) in enumerate(actions):
-        if trip_times[i] > MIN_TRIPTIME:
-            eta = min(trip_times[i], self.max_action_time)
-            self.vehicles[vid].route([], eta)
+def execute_actions(self, action_list, time__trip_list):
+    for i, (vehicle_id, _) in enumerate(action_list):
+        if time__trip_list[i] > MIN_TRIPTIME:
+            estimated_time = min(time__trip_list[i], self.max_action_time)
+            self.vehicles[vehicle_id].route([], estimated_time)
+
 
 def get_vehicle_locations_from_dataframe(vehicles):
     vehicles_dataframe_input = [vehicle.get_location() for vehicle in vehicles]
