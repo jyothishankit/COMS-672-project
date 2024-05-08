@@ -28,7 +28,7 @@ Fetch the python files:<br><br>
 %cd Python-3.7.9<br>
 
 Install the libraries for python3.7.9 with the below command<br>
-!!chmod 777 ./configure; make clean; make; make install;<br><br>
+!chmod 777 ./configure; make clean; make; make install;<br><br>
 
 Verify installation<br>
 !python3.7 --version<br>
