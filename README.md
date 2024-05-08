@@ -39,8 +39,8 @@ Output: Python 3.7.9<br><br>
 Dataset files can be downloaded from below link:<br>
 https://iowastate-my.sharepoint.com/:f:/g/personal/hritikz_iastate_edu/EtTTsjdBxY1NsyQ-Z0Xr6YUBX3uHv4wg42rzpyCdYrDOEQ?e=Mm3Mgo<br>
 
-Code can be cloned using git clone.<br>
-At the top level, create two folders data/ and pickle/ to add the .csv files and the remaining files into pickle/.<br>
+Code can be cloned using git clone or uploaded one by one.<br>
+At the top level, create two folders of the project, data/ and pickle/ to add the .csv files in data/ and the remaining files into pickle/.<br>
 
 5. Run the below command to access the drive files<br><br>
 

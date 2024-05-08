@@ -20,11 +20,11 @@ class Vehicle(object):
         self.trajectory = []
         self.eta = 0
         self.idle = 0
-        self.total_idle = 0
-        self.total_service = 0
+        self.idle_total_time = 0
+        self.service_total_time = 0
         self.reward = 0
-        self.effective_d =0
-        self.actual_d = 0
+        self.distance_effective =0
+        self.distance_actual = 0
 
     def __init__(self, vehicle_identifier, vehicle_location):
         self.id = vehicle_identifier
@@ -35,11 +35,11 @@ class Vehicle(object):
         self.trajectory = []
         self.eta = 0
         self.idle = 0
-        self.total_idle = 0
-        self.total_service = 0
+        self.idle_total_time = 0
+        self.service_total_time = 0
         self.reward = 0
-        self.effective_d = 0
-        self.actual_d = 0
+        self.distance_effective = 0
+        self.distance_actual = 0
         
 
     def update_location(self, new_location):
@@ -71,24 +71,24 @@ class Vehicle(object):
             return False
         self.available = False
         self.update_location(destination_location)
-        self.total_idle += self.idle + wait_duration
+        self.idle_total_time += self.idle + wait_duration
         num_hops = effective_distance / actual_distance
         self.idle = 0
         self.eta = wait_duration + trip_duration
-        self.total_service += trip_duration
+        self.service_total_time += trip_duration
         self.reward += (math.sqrt(RIDE_REWARD * num_passengers) + TRIP_REWARD * trip_duration - math.sqrt(WAIT_COST * wait_duration) - (HOP_REWARD * num_hops))
         self.trajectory = []
         self.status = 'SV'
-        self.effective_d += effective_distance
-        self.actual_d += actual_distance 
+        self.distance_effective += effective_distance
+        self.distance_actual += actual_distance 
         return True
 
-    def route(self, path, trip_time):
+    def route(self, new_path, trip_duration):
         if not self.available:
-            print ("The vehicle #%d is not available for service." % self.id)
+            print("The vehicle #%d is not available for service." % self.id)
             return False
-        self.eta = trip_time
-        self.trajectory = path
+        self.eta = trip_duration
+        self.trajectory = new_path
         self.status = 'MOVING'
         return True
 
@@ -101,7 +101,7 @@ class Vehicle(object):
             destination_zone = self.zone
         latitude, longitude = self.location
         return (self.id, int(self.available), self.zone, destination_zone,
-                self.eta, self.status, self.reward, latitude, longitude, self.idle,self.effective_d,self.actual_d)
+                self.eta, self.status, self.reward, latitude, longitude, self.idle,self.distance_effective,self.distance_actual)
 
     def get_location(self):
         latitude, longitude = self.location
@@ -109,4 +109,4 @@ class Vehicle(object):
 
 
     def get_score(self):
-        return (self.id, self.reward, self.total_service, self.total_idle)
+        return (self.id, self.reward, self.service_total_time, self.idle_total_time)
