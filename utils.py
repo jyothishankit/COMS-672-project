@@ -4,7 +4,7 @@ import _pickle as pickle
 import numpy as np
 from vehicle import *
 import pandas as pd
-import geohelper as gh
+import geohelper as geo_h
 
 def load_graph():
     with open(GRAPH_PATH, 'rb') as f:
@@ -33,9 +33,9 @@ def get_requests_without_offset(reqs, cur_time):
 def get_number_of_steps(cycle):
     return int(cycle * 60.0 / TIMESTEP)
 
-def get_vehicle_dataframe_with_columns(vehicles):
-    return pd.DataFrame(vehicles, columns=['id', 'available', 'geohash', 'dest_geohash',
-                                                   'eta', 'status', 'reward', 'lat', 'lon', 'idle','eff_dist','act_dist'])
+def get_vehicle_dataframe_with_columns(vehicles_list_csv):
+    column_list = ['id', 'available', 'geohash', 'dest_geohash', 'eta', 'status', 'reward', 'lat', 'lon', 'idle','eff_dist','act_dist']
+    return pd.DataFrame(vehicles_list_csv, columns=column_list)
 
 def get_updated_current_time(current_time):
     return current_time+TIMESTEP
@@ -49,7 +49,8 @@ def get_updated_minofday_dayofweek(minute_of_day, day_of_week):
 
 def get_vehicle_reward_service_time_idle_time(vehicles):
     vehicles_dataframe_input =[vehicle.get_score() for vehicle in vehicles]
-    vehicles_dataframe = pd.DataFrame(vehicles_dataframe_input, columns=['id', 'reward', 'service_time', 'idle_time'])
+    column_list = ['id', 'reward', 'service_time', 'idle_time']
+    vehicles_dataframe = pd.DataFrame(vehicles_dataframe_input, columns=column_list)
     return vehicles_dataframe
 
 def find_available_resources(resources):
@@ -69,7 +70,7 @@ def find_task_indices(tasks, unique_tasks):
     return task_indices
 
 def assign_resources_to_tasks(available_resources, unique_tasks, task_indices):
-    distances = gh.distance_in_meters(available_resources.lat.values,
+    distances = geo_h.distance_in_meters(available_resources.lat.values,
                                     available_resources.lon.values,
                                     unique_tasks.plat.values[:, None],
                                     unique_tasks.plon.values[:, None])
@@ -95,7 +96,7 @@ def sort_request_by_trip_time(request):
     return request.sort_values(by=['trip_time'])
 
 def calculate_distance(loc1, loc2):
-    return gh.distance_in_meters(loc1[0], loc1[1], loc2[0], loc2[1])
+    return geo_h.distance_in_meters(loc1[0], loc1[1], loc2[0], loc2[1])
 
 def calculate_wait_time(distance):
     return (distance * 2 / 1.414) / (ASSIGNMENT_SPEED * 1000 / 60)
@@ -108,10 +109,10 @@ def calculate_actual_trip_time(sorted_request):
     sorted_request_join = pd.merge(sorted_request, sorted_request_copy, how='left', on='index_value')
     sorted_request_join_no_na = sorted_request_join.dropna()
     if len(sorted_request_join_no_na) > 0:
-        sorted_request_join_no_na['dist_bw_dest'] = gh.distance_in_meters(sorted_request_join_no_na.dlat_x,sorted_request_join_no_na.dlon_x,
+        sorted_request_join_no_na['dist_bw_dest'] = geo_h.distance_in_meters(sorted_request_join_no_na.dlat_x,sorted_request_join_no_na.dlon_x,
                                                                 sorted_request_join_no_na.dlat_y,sorted_request_join_no_na.dlon_y)
-        actual_distance = sorted_request.iloc[0].trip_distance + (sum(sorted_request_join_no_na.distance_between_destinations)) / 1000
-        trip_time = (actual_distance / ASSIGNMENT_SPEED) * 60
+        km_distance_actual = sorted_request.iloc[0].trip_distance + (sum(sorted_request_join_no_na.distance_between_destinations)) / 1000
+        trip_time = (km_distance_actual / ASSIGNMENT_SPEED) * 60
     else:
         actual_distance = sorted_request.iloc[0].trip_distance
         trip_time = sorted_request.iloc[0].trip_time
@@ -132,7 +133,7 @@ def calculate_distances(self, vehicle_locations, target_locations):
         except:
             start_lat, start_lon = vloc
             dest_lat, dest_lon = tloc
-            d = gh.distance_in_meters(start_lat, start_lon, dest_lat, dest_lon)
+            d = geo_h.distance_in_meters(start_lat, start_lon, dest_lat, dest_lon)
             distances.append(d)
     return distances
 
@@ -140,11 +141,14 @@ def prepare_feature_matrix(self, vehicle_locs, target_locs, dists):
     num_vehicles = len(vehicle_locs)
     feature_matrix = np.zeros((num_vehicles, 7))
     feature_matrix[:, 0] = self.dayofweek
-    feature_matrix[:, 1] = self.minofday / 60.0
+    feature_matrix[:, 1] = get_min_of_day(self.minofday)
     feature_matrix[:, 2:4] = vehicle_locs
     feature_matrix[:, 4:6] = target_locs
     feature_matrix[:, 6] = dists
     return feature_matrix
+
+def get_min_of_day(minute_of_day):
+    return minute_of_day/60.0
 
 def execute_actions(self, action_list, time__trip_list):
     for i, (vehicle_id, _) in enumerate(action_list):
@@ -155,5 +159,6 @@ def execute_actions(self, action_list, time__trip_list):
 
 def get_vehicle_locations_from_dataframe(vehicles):
     vehicles_dataframe_input = [vehicle.get_location() for vehicle in vehicles]
-    vehicles_location_dataframe = pd.DataFrame(vehicles_dataframe_input, columns=['id', 'lat', 'lon', 'available'])
+    column_list = ['id', 'lat', 'lon', 'available']
+    vehicles_location_dataframe = pd.DataFrame(vehicles_dataframe_input, columns=column_list)
     return vehicles_location_dataframe
