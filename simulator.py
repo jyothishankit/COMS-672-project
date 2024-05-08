@@ -36,35 +36,35 @@ class FleetSimulator(object):
         current_requests = get_requests_without_offset(requests, current_time)
         return current_requests
 
-    def run_step_iterations(self, num_steps, current_requests):
-        wait = 0
-        reject = 0
-        gas = 0
-        request_hop_zero = 0
-        for _ in range(num_steps):
+    def run_step_iterations(self, number_of_steps, current_service_requests):
+        total_wait_time = 0
+        total_rejected_requests = 0
+        total_gas_consumption = 0
+        total_requests_with_zero_hops = 0
+        for _ in range(number_of_steps):
             for vehicle in self.vehicles:
-                gas += vehicle.transition()
+                total_gas_consumption += vehicle.transition()
             vehicle_locations = self.get_vehicles_location()
-            assignments = self.match(vehicle_locations, current_requests)
-            current_wait, num_vehicles, num_passengers, request_hop_zero_current = self.assign(assignments)
-            reject += len(current_requests) - num_passengers
-            wait += current_wait
-            request_hop_zero += request_hop_zero_current
+            assignments = self.match(vehicle_locations, current_service_requests)
+            current_wait_time, number_of_vehicles, number_of_passengers, requests_with_zero_hops = self.assign(assignments)
+            total_rejected_requests += len(current_service_requests) - number_of_passengers
+            total_wait_time += current_wait_time
+            total_requests_with_zero_hops += requests_with_zero_hops
             self.update_time()
-        return wait, reject, gas, request_hop_zero
+        return total_wait_time, total_rejected_requests, total_gas_consumption, total_requests_with_zero_hops
 
     def step(self, actions=None):
-        num_steps = self.calculate_num_steps()
+        total_steps = self.calculate_num_steps()
         self.process_actions(actions)
-        current_requests = self.get_and_process_requests(num_steps)
-        wait, reject, gas, request_hop_zero = self.run_step_iterations(num_steps, current_requests)
-        vehicles = self.get_vehicles_dataframe()
-        return vehicles, current_requests, wait, reject, gas, request_hop_zero
+        service_requests = self.get_and_process_requests(total_steps)
+        total_waiting_time, total_rejected_requests, total_gas_consumption, requests_with_zero_hops = self.run_step_iterations(total_steps, service_requests)
+        vehicle_data = self.get_vehicles_dataframe()
+        return vehicle_data, service_requests, total_waiting_time, total_rejected_requests, total_gas_consumption, requests_with_zero_hops
     
     def get_vehicles_dataframe(self):
-        vehicles = [vehicle.get_state() for vehicle in self.vehicles]
-        vehicles = get_vehicle_dataframe_with_columns(vehicles)
-        return vehicles
+        vehicle_states = [vehicle.get_state() for vehicle in self.vehicles]
+        vehicles_dataframe = get_vehicle_dataframe_with_columns(vehicle_states)
+        return vehicles_dataframe
 
     def update_time(self):
         self.current_time = get_updated_current_time(self.current_time)
@@ -81,31 +81,32 @@ class FleetSimulator(object):
         assignments = assign_resources_to_tasks(available_resources, unique_tasks, task_indices)
         return assignments
 
-    def assign(self, assignments):
-        num_vehicles_assigned = len(assignments)
-        hop_zero_requests = 0 
-        total_passengers = 0
-        total_wait_time = 0
-        for request_idx, vehicle_idx in assignments:
-            vehicle = self.vehicles[vehicle_idx]
-            request = self.requests.loc[request_idx]
-            num_passengers_in_vehicle = len(request) 
-            hop_zero_requests += count_hopper_flag_zero(request)
-            total_passengers += num_passengers_in_vehicle
-            request_sorted = sort_request_by_trip_time(request)
-            first_request = request_sorted.iloc[0]
-            last_request = request_sorted.iloc[-1]
+    def assign(self, vehicle_assignments):
+        total_assigned_vehicles = len(vehicle_assignments)
+        zero_hop_requests_count = 0 
+        total_passenger_count = 0
+        total_waiting_time = 0
+        for request_index, vehicle_index in vehicle_assignments:
+            current_vehicle = self.vehicles[vehicle_index]
+            current_request = self.requests.loc[request_index]
+            passenger_count_in_vehicle = len(current_request) 
+            zero_hop_requests_count += count_hopper_flag_zero(current_request)
+            total_passenger_count += passenger_count_in_vehicle
+            sorted_request = sort_request_by_trip_time(current_request)
+            first_request = sorted_request.iloc[0]
+            last_request = sorted_request.iloc[-1]
             pickup_location = (first_request.plat, first_request.plon)
             dropoff_location = (last_request.dlat, last_request.dlon)
-            vehicle_location = vehicle.location
+            vehicle_location = current_vehicle.location
             distance_to_pickup = calculate_distance(vehicle_location, pickup_location)
             wait_time = calculate_wait_time(distance_to_pickup)
-            effective_distance = sum(request.trip_distance)
-            actual_distance, trip_time = calculate_actual_trip_time(request_sorted)
-            vehicle.start_service(dropoff_location, wait_time, trip_time, actual_distance, effective_distance, num_passengers_in_vehicle)
-            total_wait_time += wait_time
+            effective_distance = sum(current_request.trip_distance)
+            actual_distance, trip_time = calculate_actual_trip_time(sorted_request)
+            current_vehicle.start_service(dropoff_location, wait_time, trip_time, actual_distance, effective_distance, passenger_count_in_vehicle)
+            total_waiting_time += wait_time
 
-        return total_wait_time, num_vehicles_assigned, total_passengers, hop_zero_requests
+        return total_waiting_time, total_assigned_vehicles, total_passenger_count, zero_hop_requests_count
+
 
     def dispatch(self, actions):
         vehicle_locations, target_locations = prepare_vehicle_and_target_locations(self, actions)
