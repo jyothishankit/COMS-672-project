@@ -1,9 +1,6 @@
-import numpy as np
-import pandas as pd
 from pathgenerator import PathGenerator
-import geohelper as gh
 from hyperparameters import *
-from vehicle import *
+from vehicle import * 
 from utils import *
 
 class FleetSimulator(object):
@@ -119,7 +116,6 @@ class FleetSimulator(object):
 
 
     def get_vehicles_location(self):
-        vehicles = [vehicle.get_location() for vehicle in self.vehicles]
-        vehicles = pd.DataFrame(vehicles, columns=['id', 'lat', 'lon', 'available'])
+        vehicles = get_vehicle_locations_from_dataframe(self.vehicles)
         return vehicles
 

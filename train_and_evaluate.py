@@ -37,7 +37,6 @@ def main():
         score.to_csv(SCORE_PATH + 'score_dqn' + str(episode) + '.csv')
 
         if episode >= 0 and episode % 2 == 0:
-            #Saving Experience Replace for each episode in pickle files
             with open(SCORE_PATH + 'ex_memory_v7' + str(episode) + '.pkl', 'wb') as f:
                 pickle.dump(agent.replay_memory, f)
 

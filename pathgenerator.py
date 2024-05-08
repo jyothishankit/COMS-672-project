@@ -243,49 +243,12 @@ class PathGenerator(object):
         source = self.G.node[source_id]
         target = self.G.node[target_id]
         return gh.distance_in_meters(source['lat'], source['lon'], target['lat'], target['lon'])
-
+    
     def __get_subgraph(self, lat, lon, geo_range):
-        lat_min, lat_max = lat - geo_range, lat + geo_range
-        lon_min, lon_max = lon - geo_range, lon + geo_range
-        lats = self.node_lats
-        lons = self.node_lons
-        sub_ids = self.node_ids[(lats < lat_max) & (lats > lat_min) & (lons < lon_max) & (lons > lon_min)]
+        latitude_min, latitude_max = lat - geo_range, lat + geo_range
+        longitude_min, longitude_max = lon - geo_range, lon + geo_range
+        latitudes = self.node_lats
+        longitudes = self.node_lons
+        sub_ids = self.node_ids[(latitudes < latitude_max) & (latitudes > latitude_min) & (longitudes < longitude_max) & (longitudes > longitude_min)]
         return self.G.subgraph(sub_ids)
 
-
-if __name__ == '__main__':
-    import _pickle as pickle
-    import pandas as pd
-    import json
-    import time
-
-    print ("Loading NYC road network graph...")
-    graph_path = 'data/nyc_network_graph.pkl'
-    with open(graph_path, 'r') as f:
-        G = pickle.load(f)
-    path_generator = PathGenerator(G)
-
-    print ("Loading sample ride requests...")
-    requests_path = 'data/requests_sample.csv'
-    df = pd.read_csv(requests_path, nrows=150)
-    trajectories = {}
-    ride_requests = zip(df.request_id.values, df.trip_time.values, df[['pickup_latitude', 'pickup_longitude']].values,
-                        df[['dropoff_latitude', 'dropoff_longitude']].values)
-    print ("Start generating paths:")
-    print ("# of ride requests: %d" % len(ride_requests))
-    start = time.time()
-    n = 0
-    for rid, trip_time, origin, destination in ride_requests:
-        try:
-            path = path_generator.get_path(origin, destination, trip_time)
-            trajectories[rid] = path
-            n += 1
-            if n % 100 == 0:
-                print ("%d elapsed time: %.2f" % (n, time.time() - start))
-        except:
-            continue
-    print ("%d elapsed time: %.2f" % (n, time.time() - start))
-
-    with open('data/trajectories.json', 'wb') as f:
-        json.dump(trajectories, f)
-    print ("Complete!")

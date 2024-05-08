@@ -151,3 +151,8 @@ def execute_actions(self, actions, trip_times):
         if trip_times[i] > MIN_TRIPTIME:
             eta = min(trip_times[i], self.max_action_time)
             self.vehicles[vid].route([], eta)
+
+def get_vehicle_locations_from_dataframe(vehicles):
+    vehicles_dataframe_input = [vehicle.get_location() for vehicle in vehicles]
+    vehicles_location_dataframe = pd.DataFrame(vehicles_dataframe_input, columns=['id', 'lat', 'lon', 'available'])
+    return vehicles_location_dataframe
