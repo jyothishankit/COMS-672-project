@@ -36,13 +36,6 @@ def get_vehicle_dataframe_with_columns(vehicles):
     return pd.DataFrame(vehicles, columns=['id', 'available', 'geohash', 'dest_geohash',
                                                    'eta', 'status', 'reward', 'lat', 'lon', 'idle','eff_dist','act_dist'])
 
-"""
-self.current_time += TIMESTEP
-        self.minofday += int(TIMESTEP / 60.0)
-        if self.minofday >= 1440:
-            self.minofday -= 1440
-            self.dayofweek = (self.dayofweek + 1) % 7
-"""
 def get_updated_current_time(current_time):
     return current_time+TIMESTEP
 
