@@ -16,19 +16,19 @@ def load_eta_model():
         eta_model = pickle.load(f)
     return eta_model
 
-def get_initial_locations(dataset, num_vehicles):
-    return dataset[['plat', 'plon']].values[np.arange(num_vehicles) % len(dataset)]
+def get_initial_locations(data, num_vehicles):
+    return data[['plat', 'plon']].values[np.arange(num_vehicles) % len(data)]
 
-def get_initial_location_vehicles(init_locations, num_vehicles):
-    return [Vehicle(i, init_locations[i]) for i in range(num_vehicles)]
+def get_initial_location_vehicles(initial_locations, num_vehicles):
+    return [Vehicle(i, initial_locations[i]) for i in range(num_vehicles)]
 
-def get_requests_with_offset(requests, current_time, num_steps, offset):
-    return requests[(requests.second >= current_time + offset * TIMESTEP)
-                                 &(requests.second < current_time + TIMESTEP * (num_steps + offset))]
+def get_requests_with_offset(reqs, cur_time, num_steps, off):
+    return reqs[(reqs.second >= cur_time + off * TIMESTEP)
+                & (reqs.second < cur_time + TIMESTEP * (num_steps + off))]
 
-def get_requests_without_offset(requests, current_time):
-    return requests[(requests.second >= current_time)
-                                 &(requests.second < current_time + TIMESTEP)]
+def get_requests_without_offset(reqs, cur_time):
+    return reqs[(reqs.second >= cur_time)
+                & (reqs.second < cur_time + TIMESTEP)]
 
 def get_number_of_steps(cycle):
     return int(cycle * 60.0 / TIMESTEP)
@@ -40,12 +40,12 @@ def get_vehicle_dataframe_with_columns(vehicles):
 def get_updated_current_time(current_time):
     return current_time+TIMESTEP
 
-def get_updated_minofday_dayofweek(minofday, dayofweek):
-    minofday += int(TIMESTEP / 60.0)
-    if minofday >= 1440:
-        minofday -= 1440
-        dayofweek = (dayofweek + 1) % 7
-    return minofday, dayofweek
+def get_updated_minofday_dayofweek(minute_of_day, day_of_week):
+    minute_of_day += int(TIMESTEP / 60.0)
+    if minute_of_day >= 1440:
+        minute_of_day -= 1440
+        day_of_week = (day_of_week + 1) % 7
+    return minute_of_day, day_of_week
 
 def get_vehicle_reward_service_time_idle_time(vehicles):
     vehicles_dataframe_input =[vehicle.get_score() for vehicle in vehicles]
