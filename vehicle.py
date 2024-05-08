@@ -97,9 +97,3 @@ class Vehicle(object):
 
     def get_score(self):
         return (self.id, self.reward, self.total_service, self.total_idle)
-    
-
-
-def index_pull(rows,trips_test_2):
-    val= trips_test_2[(trips_test_2['plat']==rows['plat'].item()) & (trips_test_2['plon']==rows['plon'].item())].index.values       
-    return val 

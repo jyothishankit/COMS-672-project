@@ -4,6 +4,7 @@ from pathgenerator import PathGenerator
 import geohelper as gh
 from hyperparameters import *
 from vehicle import *
+from utils import *
 
 class FleetSimulator(object):
     def __init__(self, G, eta_model, cycle, max_action_time=20):
@@ -13,60 +14,53 @@ class FleetSimulator(object):
         self.cycle = cycle
 
     def reset(self, num_vehicles, dataset, dayofweek, minofday):
+        init_locations = get_initial_locations(dataset, num_vehicles)
         self.requests = dataset
-        init_locations = self.requests[['plat', 'plon']].values[np.arange(num_vehicles) % len(self.requests)]
-        self.vehicles = [Vehicle(i, init_locations[i]) for i in range(num_vehicles)]
+        self.vehicles = get_initial_location_vehicles(init_locations, num_vehicles)
         self.current_time = 0
         self.minofday = minofday
         self.dayofweek = dayofweek
 
 
     def get_requests(self, num_steps, offset=0):
-        requests = self.requests[(self.requests.second >= self.current_time + offset * TIMESTEP)
-                                 &(self.requests.second < self.current_time + TIMESTEP * (num_steps + offset))]
+        requests = get_requests_with_offset(self.requests, self.current_time, num_steps, offset)
         return requests
 
     def step(self, actions=None):
-        num_steps = int(self.cycle * 60.0 / TIMESTEP)
-
+        num_steps = get_number_of_steps(self.cycle)
         if actions:
             self.dispatch(actions)
-
         requests = self.get_requests(num_steps)
-        wait, reject, gas,request_hop_zero = 0, 0, 0, 0
-        for _ in range(num_steps):
+        wait = 0
+        reject = 0
+        gas = 0
+        request_hop_zero = 0
+        for iter in range(num_steps):
             for vehicle in self.vehicles:
                 gas += vehicle.transition()
-            X = self.get_vehicles_location()
-            W = requests[(requests.second >= self.current_time)
-                                 &(requests.second < self.current_time + TIMESTEP)]
-            assignments = self.match(X, W)
-            wait_,num_vehicles,num_passengers,request_hop_zero_ = self.assign(assignments)
-            wait += wait_
-            reject += len(W) - num_passengers
-            request_hop_zero += request_hop_zero_
+            vehicle_locations = self.get_vehicles_location()
+            current_requests = get_requests_without_offset(requests, self.current_time)
+            assignments = self.match(vehicle_locations, current_requests)
+            current_wait,num_vehicles,num_passengers,request_hop_zero_current = self.assign(assignments)
+            reject += len(current_requests) - num_passengers
+            wait += current_wait
+            request_hop_zero += request_hop_zero_current
             self.update_time()
         vehicles = self.get_vehicles_dataframe()
         return vehicles, requests, wait, reject, gas, request_hop_zero
     
     def get_vehicles_dataframe(self):
         vehicles = [vehicle.get_state() for vehicle in self.vehicles]
-        vehicles = pd.DataFrame(vehicles, columns=['id', 'available', 'geohash', 'dest_geohash',
-                                                   'eta', 'status', 'reward', 'lat', 'lon', 'idle','eff_dist','act_dist'])
+        vehicles = get_vehicle_dataframe_with_columns(vehicles)
         return vehicles
 
     def update_time(self):
-        self.current_time += TIMESTEP
-        self.minofday += int(TIMESTEP / 60.0)
-        if self.minofday >= 1440:
-            self.minofday -= 1440
-            self.dayofweek = (self.dayofweek + 1) % 7
+        self.current_time = get_updated_current_time(self.current_time)
+        self.minofday, self.dayofweek = get_updated_minofday_dayofweek(self.minofday, self.dayofweek)
 
     def get_vehicles_score(self):
-        vehicles = [vehicle.get_score() for vehicle in self.vehicles]
-        vehicles = pd.DataFrame(vehicles, columns=['id', 'reward', 'service_time', 'idle_time'])
+        vehicles = get_vehicle_reward_service_time_idle_time(vehicles)
         return vehicles
-    
     
     def match(self, resources, tasks):
         R = resources[resources.available == 1]
