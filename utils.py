@@ -19,8 +19,8 @@ def load_eta_model():
 def get_initial_locations(data, number_of_vehicles):
     return data[['plat', 'plon']].values[np.arange(number_of_vehicles) % len(data)]
 
-def get_initial_location_vehicles(initial_locations, number_of_vehicles):
-    return [Vehicle(i, initial_locations[i]) for i in range(number_of_vehicles)]
+def get_initial_location_vehicles(initial_locs, number_of_fleets):
+    return [Vehicle(i, initial_locs[i]) for i in range(number_of_fleets)]
 
 def get_requests_with_offset(reqs, cur_time, num_steps, off):
     return reqs[(reqs.second >= cur_time + off * TIMESTEP)
@@ -58,10 +58,10 @@ def find_available_resources(resources):
         return available_resources
 
 def count_unique_tasks(task_list):
-    unique_tasks = task_list.groupby(['plat','plon']).count()
-    unique_tasks = unique_tasks.reset_index(level=['plat','plon'])
-    unique_tasks = unique_tasks[['plat','plon']]
-    return unique_tasks
+    unique_task_list = task_list.groupby(['plat','plon']).count()
+    unique_task_list = unique_task_list.reset_index(level=['plat','plon'])
+    unique_task_list = unique_task_list[['plat','plon']]
+    return unique_task_list
 
 def find_task_indices(task_list, unique_task_list):
     task_indices = unique_task_list.apply(lambda row: task_list[(task_list['plat']==row['plat']) & 
@@ -103,11 +103,11 @@ def calculate_wait_time(distance):
     return (distance * 2 / 1.414) / (ASSIGNMENT_SPEED * 1000 / 60)
 
 def calculate_actual_trip_time(sorted_request):
-    request_sorted_copy= sorted_request.copy()
+    request_sorted_dup= sorted_request.copy()
     sorted_request.loc[:, 'index_value'] = range(len(sorted_request))
-    request_sorted_copy.loc[:, 'index_value'] = sorted_request['index_value'].values - 1
-    request_sorted_copy= request_sorted_copy[['dlat','dlon','index_value']]
-    sorted_join_requests = pd.merge(sorted_request, request_sorted_copy, how='left', on='index_value')
+    request_sorted_dup.loc[:, 'index_value'] = sorted_request['index_value'].values - 1
+    request_sorted_dup = request_sorted_dup[['dlat','dlon','index_value']]
+    sorted_join_requests = pd.merge(sorted_request, request_sorted_dup, how='left', on='index_value')
     sorted_join_requests_non_empty = sorted_join_requests.dropna()
     if len(sorted_join_requests_non_empty) > 0:
         sorted_join_requests_non_empty['dist_bw_dest'] = geo_h.distance_in_meters(sorted_join_requests_non_empty.dlat_x,sorted_join_requests_non_empty.dlon_x,
