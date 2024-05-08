@@ -7,20 +7,20 @@ import pandas as pd
 import geohelper as geo_h
 
 def load_graph():
-    with open(GRAPH_PATH, 'rb') as f:
-        G = pickle.load(f)
+    with open(GRAPH_PATH, 'rb') as file:
+        G = pickle.load(file)
     return G
 
 def load_eta_model():
-    with open(ETA_MODEL_PATH, 'rb') as f:
-        eta_model = pickle.load(f)
+    with open(ETA_MODEL_PATH, 'rb') as file:
+        eta_model = pickle.load(file)
     return eta_model
 
-def get_initial_locations(data, num_vehicles):
-    return data[['plat', 'plon']].values[np.arange(num_vehicles) % len(data)]
+def get_initial_locations(data, number_of_vehicles):
+    return data[['plat', 'plon']].values[np.arange(number_of_vehicles) % len(data)]
 
-def get_initial_location_vehicles(initial_locations, num_vehicles):
-    return [Vehicle(i, initial_locations[i]) for i in range(num_vehicles)]
+def get_initial_location_vehicles(initial_locations, number_of_vehicles):
+    return [Vehicle(i, initial_locations[i]) for i in range(number_of_vehicles)]
 
 def get_requests_with_offset(reqs, cur_time, num_steps, off):
     return reqs[(reqs.second >= cur_time + off * TIMESTEP)
@@ -57,8 +57,8 @@ def find_available_resources(resources):
         available_resources = resources[resources.available == 1]
         return available_resources
 
-def count_unique_tasks(tasks):
-    unique_tasks = tasks.groupby(['plat','plon']).count()
+def count_unique_tasks(task_list):
+    unique_tasks = task_list.groupby(['plat','plon']).count()
     unique_tasks = unique_tasks.reset_index(level=['plat','plon'])
     unique_tasks = unique_tasks[['plat','plon']]
     return unique_tasks
@@ -106,17 +106,17 @@ def calculate_actual_trip_time(sorted_request):
     sorted_request.loc[:, 'index_value'] = range(len(sorted_request))
     sorted_request_copy.loc[:, 'index_value'] = sorted_request['index_value'].values - 1
     sorted_request_copy = sorted_request_copy[['dlat','dlon','index_value']]
-    sorted_request_join = pd.merge(sorted_request, sorted_request_copy, how='left', on='index_value')
-    sorted_request_join_no_na = sorted_request_join.dropna()
-    if len(sorted_request_join_no_na) > 0:
-        sorted_request_join_no_na['dist_bw_dest'] = geo_h.distance_in_meters(sorted_request_join_no_na.dlat_x,sorted_request_join_no_na.dlon_x,
-                                                                sorted_request_join_no_na.dlat_y,sorted_request_join_no_na.dlon_y)
-        km_distance_actual = sorted_request.iloc[0].trip_distance + (sum(sorted_request_join_no_na.distance_between_destinations)) / 1000
-        trip_time = (km_distance_actual / ASSIGNMENT_SPEED) * 60
+    sorted_join_requests = pd.merge(sorted_request, sorted_request_copy, how='left', on='index_value')
+    sorted_join_requests_non_empty = sorted_join_requests.dropna()
+    if len(sorted_join_requests_non_empty) > 0:
+        sorted_join_requests_non_empty['dist_bw_dest'] = geo_h.distance_in_meters(sorted_join_requests_non_empty.dlat_x,sorted_join_requests_non_empty.dlon_x,
+                                                                sorted_join_requests_non_empty.dlat_y,sorted_join_requests_non_empty.dlon_y)
+        km_distance_actual = sorted_request.iloc[0].trip_distance + (sum(sorted_join_requests_non_empty.distance_between_destinations)) / 1000
+        trip_actual_time = (km_distance_actual / ASSIGNMENT_SPEED) * 60
     else:
         actual_distance = sorted_request.iloc[0].trip_distance
-        trip_time = sorted_request.iloc[0].trip_time
-    return actual_distance, trip_time
+        trip_actual_time = sorted_request.iloc[0].trip_time
+    return actual_distance, trip_actual_time
 
 
 def prepare_vehicle_and_target_locations(self, actions):
