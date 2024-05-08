@@ -141,13 +141,13 @@ def prepare_feature_matrix(self, vehicle_locs, target_locs, dists):
     num_vehicles = len(vehicle_locs)
     feature_matrix = np.zeros((num_vehicles, 7))
     feature_matrix[:, 0] = self.dayofweek
-    feature_matrix[:, 1] = get_min_of_day(self.minofday)
+    feature_matrix[:, 1] = get_hour_of_day(self.minofday)
     feature_matrix[:, 2:4] = vehicle_locs
     feature_matrix[:, 4:6] = target_locs
     feature_matrix[:, 6] = dists
     return feature_matrix
 
-def get_min_of_day(minute_of_day):
+def get_hour_of_day(minute_of_day):
     return minute_of_day/60.0
 
 def execute_actions(self, action_list, time__trip_list):
