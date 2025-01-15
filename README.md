@@ -1,6 +1,7 @@
-Effective Multi-Hop Taxi Ride Sharing Strategy
-Detailed report:
+Effective Multi-Hop Taxi Ride Sharing Strategy<br>
+Detailed report:<br>
 https://drive.google.com/file/d/19jpaFaDF6WVbLpQZlkJ4zIZER_XtKjq4/view?usp=sharing
+<br><br>
 
 Steps to run code on Google Colab Pro+:<br><br>
 1. Verify the following:<br>
